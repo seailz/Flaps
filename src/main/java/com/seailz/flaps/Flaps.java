@@ -90,9 +90,19 @@ public final class Flaps {
                 advance(st);
 
                 // Pack and send
-                long timeOfDay = customTime != null
-                        ? customTime
-                        : FlapsCodec.packTimeOfDay(st.mask, FlapsCodec.arg0iFrom01(st.arg0));
+                long timeOfDay;
+                if (customTime != null) {
+                    timeOfDay = customTime;
+                } else {
+                    int arg0i;
+                    if (st.arg0CounterEnabled) {
+                        arg0i = st.arg0CounterValue;
+                        st.arg0CounterValue = (st.arg0CounterValue + 1) % (FlapsCodec.ARG0_MAX + 1);
+                    } else {
+                        arg0i = FlapsCodec.arg0iFrom01(st.arg0);
+                    }
+                    timeOfDay = FlapsCodec.packTimeOfDay(st.mask, arg0i);
+                }
 
                 if (sendEveryTick || timeOfDay != st.lastTimeOfDay) {
                     sendTimePacket(p, timeOfDay);
@@ -119,7 +129,10 @@ public final class Flaps {
                         ? st.lastTimeOfDay
                         : (customTime != null
                         ? customTime
-                        : FlapsCodec.packTimeOfDay(st.mask, FlapsCodec.arg0iFrom01(st.arg0)));
+                        : FlapsCodec.packTimeOfDay(
+                                st.mask,
+                                st.arg0CounterEnabled ? st.arg0CounterValue : FlapsCodec.arg0iFrom01(st.arg0)
+                        ));
 
                 event.getPacket().getLongs().write(0, timeOfDay);
                 event.getPacket().getLongs().write(1, p.getWorld().getTime());
@@ -168,14 +181,25 @@ public final class Flaps {
     }
 
     /** Internal: apply changes requested by the builder. */
-    void apply(@NotNull Player player, int maskOr, int maskAnd, Float arg0, Integer transitionTicks) {
+    void apply(@NotNull Player player, int maskOr, int maskAnd, Float arg0, Integer transitionTicks, Boolean arg0Counter) {
         FlapsPlayerState st = states.computeIfAbsent(player.getUniqueId(), FlapsPlayerState::new);
 
         // mask update
         st.mask = (st.mask & maskAnd) | maskOr;
 
+        // arg0 mode update
+        if (arg0Counter != null) {
+            st.arg0CounterEnabled = arg0Counter;
+            if (arg0Counter) {
+                st.arg0CounterValue = 0;
+                st.transitioning = false;
+                st.durationTicks = 0;
+            }
+        }
+
         // arg update
         if (arg0 != null) {
+            st.arg0CounterEnabled = false;
             float newArg0 = FlapsCodec.clamp01(arg0);
 
             int ticks = transitionTicks != null ? transitionTicks : 0;

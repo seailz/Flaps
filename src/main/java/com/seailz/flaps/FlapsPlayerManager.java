@@ -17,6 +17,7 @@ public final class FlapsPlayerManager {
     private int pendingMaskOr = 0;
     private int pendingMaskAnd = 0xFF; // keep bits
     private Float pendingArg0 = null;
+    private Boolean pendingArg0Counter = null;
     private Integer pendingTransitionTicks = null;
 
     FlapsPlayerManager(Flaps bus, Player player) {
@@ -74,6 +75,7 @@ public final class FlapsPlayerManager {
     @CheckReturnValue
     public FlapsPlayerManager arg0(float arg01) {
         pendingArg0 = FlapsCodec.clamp01(arg01);
+        pendingArg0Counter = false;
         return this;
     }
 
@@ -86,6 +88,19 @@ public final class FlapsPlayerManager {
         float clamped = FlapsCodec.clamp(signed, -1f, 1f);
         float arg01 = (clamped * 0.5f) + 0.5f;
         pendingArg0 = arg01;
+        pendingArg0Counter = false;
+        return this;
+    }
+
+    /**
+     * Sets arg0 to be driven by an internal counter (0..{@link FlapsCodec#ARG0_MAX}, wraps every tick).
+     * <p>This is useful as a simple time source in the shader when you don't need an actual parameter.
+     * <p>Calling {@link #arg0(float)} or {@link #arg0Signed(float)} disables counter mode.
+     */
+    @CheckReturnValue
+    public FlapsPlayerManager arg0Counter() {
+        pendingArg0 = null;
+        pendingArg0Counter = true;
         return this;
     }
 
@@ -105,12 +120,13 @@ public final class FlapsPlayerManager {
      * Sends the pending changes to the player's client.
      */
     public void commit() {
-        bus.apply(player, pendingMaskOr, pendingMaskAnd, pendingArg0, pendingTransitionTicks);
+        bus.apply(player, pendingMaskOr, pendingMaskAnd, pendingArg0, pendingTransitionTicks, pendingArg0Counter);
 
         // reset pending ops so the builder can be reused
         pendingMaskOr = 0;
         pendingMaskAnd = 0xFF;
         pendingArg0 = null;
+        pendingArg0Counter = null;
         pendingTransitionTicks = null;
     }
 }

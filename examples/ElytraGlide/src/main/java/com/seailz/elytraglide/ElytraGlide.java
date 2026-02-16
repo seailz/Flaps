@@ -81,7 +81,9 @@ public final class ElytraGlide extends JavaPlugin {
 
             // Convert yaw rate to roll angle, clamp, then normalize to [-1, 1]
             float targetRollDeg = clamp(smoothed * ROLL_PER_YAW_DEG, -MAX_ROLL_DEG, MAX_ROLL_DEG);
-            float norm = -targetRollDeg / MAX_ROLL_DEG; // invert direction to match expected roll
+            float norm = -targetRollDeg / MAX_ROLL_DEG;
+            // Invert
+            norm = clamp(norm, -1f, 1f);
 
             bus.player(player)
                     .enable(FlapsEffect.ROLL)
