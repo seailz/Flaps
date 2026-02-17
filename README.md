@@ -1,3 +1,7 @@
+> **Update 17/02/2026**
+> After a lot of research, I've discovered a way to make core shaders stateful. I'm working on turning this into a prototype and implementing it into Flaps!
+
+
 # Flaps
 Flaps is a library that allows you to communicate with Minecraft resource pack shaders (different to shader packs) from a PaperMC server, allowing you to create dynamic visual effects on players screens without mods, just by providing the resource pack for players.
 
